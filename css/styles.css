@@ -272,13 +272,14 @@ main{
   main{
     display: grid;
     grid-template-columns: minmax(180px, 34%) 1fr;
-    grid-template-rows: auto auto 1fr auto auto;
+    /* Controls are the final row so their bottom aligns exactly with the vial;
+       the (usually empty) footer lives in the flexible spacer above them. */
+    grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
       "mode vial"
       "read vial"
-      ".    vial"
-      "ctrl vial"
-      "foot vial";
+      "foot vial"
+      "ctrl vial";
   }
   .mode-label{ grid-area: mode; }
   .readout{ grid-area: read; }
