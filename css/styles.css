@@ -85,6 +85,15 @@ main{
 }
 .mode-label.hidden{ display: none; }
 
+/* Banner + readout travel together so the readout aligns to the top of the
+   column whether or not the (edge-only) banner is present. */
+.info{
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+}
+
 /* ---- Readout ---- */
 .readout{
   display: grid;
@@ -120,13 +129,19 @@ main{
 
 /* ---- Bullseye vial ---- */
 .vial-wrap{
-  position: relative;
+  display: flex;
+  align-items: stretch;
   width: 100%;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
-.vial-wrap canvas{
+.vial-canvas{
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.vial-canvas canvas{
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   display: block;
@@ -149,7 +164,8 @@ main{
   min-height: 0;
   overflow: hidden;
 }
-.torpedo-tag{
+.torpedo-tag,
+.vial-tag{
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.18em;
@@ -272,17 +288,16 @@ main{
   main{
     display: grid;
     grid-template-columns: minmax(180px, 34%) 1fr;
-    /* Controls are the final row so their bottom aligns exactly with the vial;
-       the (usually empty) footer lives in the flexible spacer above them. */
-    grid-template-rows: auto auto 1fr auto;
+    /* info (banner+readout) pins to the top, controls to the bottom — both
+       edges then line up with the full-height vial. The usually-empty footer
+       sits in the flexible spacer between them. */
+    grid-template-rows: auto 1fr auto;
     grid-template-areas:
-      "mode vial"
-      "read vial"
+      "info vial"
       "foot vial"
       "ctrl vial";
   }
-  .mode-label{ grid-area: mode; }
-  .readout{ grid-area: read; }
+  .info{ grid-area: info; }
   .vial-wrap,
   .torpedo-stack{ grid-area: vial; }
   .controls{ grid-area: ctrl; }

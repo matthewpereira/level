@@ -16,21 +16,26 @@
     </div>
 
     <div id="levelUI" class="hidden" style="display:contents;">
-      <div class="mode-label hidden" id="modeLabel">ON EDGE — DUAL AXIS</div>
+      <div class="info">
+        <div class="mode-label hidden" id="modeLabel">ON EDGE — DUAL AXIS</div>
 
-      <div class="readout">
-        <div class="field" id="fieldX">
-          <div class="value" id="valX">0.0<span class="unit">°</span></div>
-          <div class="label" id="labelX">SIDE X</div>
-        </div>
-        <div class="field" id="fieldY">
-          <div class="value" id="valY">0.0<span class="unit">°</span></div>
-          <div class="label" id="labelY">FRONT Y</div>
+        <div class="readout">
+          <div class="field" id="fieldX">
+            <div class="value" id="valX">0.0<span class="unit">°</span></div>
+            <div class="label" id="labelX">SIDE X</div>
+          </div>
+          <div class="field" id="fieldY">
+            <div class="value" id="valY">0.0<span class="unit">°</span></div>
+            <div class="label" id="labelY">FRONT Y</div>
+          </div>
         </div>
       </div>
 
       <div class="vial-wrap" id="bullseyeWrap">
-        <canvas id="canvas"></canvas>
+        <span class="vial-tag">BULLSEYE</span>
+        <div class="vial-canvas">
+          <canvas id="canvas"></canvas>
+        </div>
       </div>
 
       <div class="torpedo-stack hidden" id="torpedoStack">
