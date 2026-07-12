@@ -85,14 +85,38 @@ main{
 }
 .mode-label.hidden{ display: none; }
 
-/* Banner + readout travel together so the readout aligns to the top of the
-   column whether or not the (edge-only) banner is present. */
+/* Switch/banner + readout travel together so the readout aligns to the top of
+   the column whether or not the (edge-only) banner is present. */
 .info{
   display: flex;
   flex-direction: column;
   gap: var(--gap);
   min-height: 0;
 }
+
+/* ---- Flat-mode display switch: BULLSEYE | TORPEDO ---- */
+.switch{
+  display: flex;
+  border: var(--frame) solid var(--line);
+  overflow: hidden;
+}
+.switch.hidden{ display: none; }
+.seg{
+  flex: 1;
+  font-family: var(--sans);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  padding: 12px 6px;
+  border: none;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--bg);
+  transition: background .1s ease, color .1s ease;
+}
+.seg + .seg{ border-left: var(--frame) solid var(--line); }
+.seg.is-active{ background: var(--ink); color: var(--bg); }
 
 /* ---- Readout ---- */
 .readout{

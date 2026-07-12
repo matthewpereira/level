@@ -13,7 +13,10 @@ const $ = (id) => document.getElementById(id);
 // --- DOM refs ---
 const valX = $('valX'), valY = $('valY');
 const labelX = $('labelX'), labelY = $('labelY');
-const modeLabel = $('modeLabel');
+const modeBanner = $('modeBanner');
+const flatSwitch = $('flatSwitch');
+const segBullseye = $('segBullseye'), segTorpedo = $('segTorpedo');
+const torpedoTag1 = $('torpedoTag1'), torpedoTag2 = $('torpedoTag2');
 const bullseyeWrap = $('bullseyeWrap');
 const torpedoStack = $('torpedoStack');
 const footerMsg = $('footerMsg');
@@ -98,8 +101,21 @@ const smooth = { x: 0, y: 0, level: 0, lean: 0 };     // smoothed display angles
 const tare = { x: 0, y: 0, level: 0, lean: 0 };       // zero offsets
 let inEdgeMode = false;
 let haveOrientation = false, haveMotion = false;
-let lastShowTorpedo = null;
+let lastMode = null; // 'bullseye' | 'torpedo' | 'edge'
 let reseed = false; // when true, snap smoothing to current raw (no visible slide)
+
+// Which display to show when the phone is flat (user choice, remembered).
+// 'bullseye' = 2-axis vial; 'torpedo' = two linear gauges (side / front).
+// On-edge mode is automatic and overrides this.
+let flatView = readFlatView();
+
+function readFlatView() {
+  try {
+    const v = localStorage.getItem('level.flatView');
+    if (v === 'bullseye' || v === 'torpedo') return v;
+  } catch (_) { /* storage unavailable */ }
+  return 'bullseye';
+}
 
 const sensors = createSensorSource({
   onOrientation(beta, gamma) {
@@ -126,14 +142,39 @@ const sensors = createSensorSource({
 });
 
 // --- Mode switching ---
-function applyMode(showTorpedo) {
-  bullseyeWrap.classList.toggle('hidden', showTorpedo);
-  torpedoStack.classList.toggle('hidden', !showTorpedo);
-  modeLabel.classList.toggle('hidden', !showTorpedo);
-  labelX.textContent = showTorpedo ? 'LEVEL' : 'SIDE X';
-  labelY.textContent = showTorpedo ? 'LEAN' : 'FRONT Y';
+// Three display modes: 'bullseye' (flat vial), 'torpedo' (flat dual gauge),
+// 'edge' (on-edge dual gauge, automatic). The torpedo stack is shared by the
+// 'torpedo' and 'edge' modes with different labels and data sources.
+function applyMode(mode) {
+  const useStack = mode === 'torpedo' || mode === 'edge';
+  const edge = mode === 'edge';
+
+  bullseyeWrap.classList.toggle('hidden', useStack);
+  torpedoStack.classList.toggle('hidden', !useStack);
+  modeBanner.classList.toggle('hidden', !edge); // banner only on-edge
+  flatSwitch.classList.toggle('hidden', edge);  // switch only when flat
+
+  labelX.textContent = edge ? 'LEVEL' : 'SIDE X';
+  labelY.textContent = edge ? 'LEAN' : 'FRONT Y';
+  torpedoTag1.textContent = edge ? 'LEVEL' : 'SIDE';
+  torpedoTag2.textContent = edge ? 'LEAN' : 'FRONT';
+
   resize(); // the newly-shown canvases now have a non-zero size to measure
 }
+
+// Persist and apply the flat-mode choice. Takes effect immediately when flat;
+// stays remembered for when the phone returns from on-edge.
+function setFlatView(view) {
+  if (view !== 'bullseye' && view !== 'torpedo') return;
+  flatView = view;
+  try { localStorage.setItem('level.flatView', view); } catch (_) { /* ignore */ }
+  segBullseye.classList.toggle('is-active', view === 'bullseye');
+  segTorpedo.classList.toggle('is-active', view === 'torpedo');
+  if (!inEdgeMode) lastMode = null; // force applyMode on the next frame
+}
+segBullseye.addEventListener('click', () => setFlatView('bullseye'));
+segTorpedo.addEventListener('click', () => setFlatView('torpedo'));
+setFlatView(flatView); // sync the active segment with the stored preference
 
 function setReadout(valEl, deg) {
   valEl.innerHTML = formatAngle(deg) + '<span class="unit">°</span>';
@@ -143,41 +184,51 @@ function setReadout(valEl, deg) {
 // --- Animation loop ---
 function loop() {
   const angle = screenAngle();
-  const showTorpedo = haveMotion && inEdgeMode;
+  const mode = inEdgeMode && haveMotion ? 'edge' : flatView;
 
   // Compensate raw device-frame vectors for the current screen rotation.
   const tilt = rotateToScreen(raw.gamma, raw.beta, angle); // x=left/right, y=front/back
   const g = rotateToScreen(grav.x, grav.y, angle);
-  const edge = torpedoAngles(g.x, g.y, grav.z);
+  const edgeAngles = torpedoAngles(g.x, g.y, grav.z);
 
-  if (showTorpedo !== lastShowTorpedo) {
-    lastShowTorpedo = showTorpedo;
-    applyMode(showTorpedo);
+  if (mode !== lastMode) {
+    lastMode = mode;
+    applyMode(mode);
     reseed = true; // avoid sliding from the other mode's stale smoothed value
   }
 
   if (reseed) {
     reseed = false;
     smooth.x = tilt.x; smooth.y = tilt.y;
-    smooth.level = edge.level; smooth.lean = edge.lean;
+    smooth.level = edgeAngles.level; smooth.lean = edgeAngles.lean;
   }
 
-  if (showTorpedo) {
-    smooth.level = lowPass(smooth.level, edge.level, SMOOTHING.torpedo);
-    smooth.lean = lowPass(smooth.lean, edge.lean, SMOOTHING.torpedo);
+  if (mode === 'edge') {
+    smooth.level = lowPass(smooth.level, edgeAngles.level, SMOOTHING.torpedo);
+    smooth.lean = lowPass(smooth.lean, edgeAngles.lean, SMOOTHING.torpedo);
     const level = clamp(smooth.level - tare.level, -CLAMP_DEG, CLAMP_DEG);
     const lean = clamp(smooth.lean - tare.lean, -CLAMP_DEG, CLAMP_DEG);
     drawTorpedo(torpedo1.ctx, torpedo1, level, theme);
     drawTorpedo(torpedo2.ctx, torpedo2, lean, theme);
-    setReadout(valX, level);
+    setReadout(valX, level); // each gauge is an independent axis
     setReadout(valY, lean);
-  } else {
-    smooth.x = lowPass(smooth.x, tilt.x, SMOOTHING.bullseye);
-    smooth.y = lowPass(smooth.y, tilt.y, SMOOTHING.bullseye);
-    const x = clamp(smooth.x - tare.x, -CLAMP_DEG, CLAMP_DEG);
-    const y = clamp(smooth.y - tare.y, -CLAMP_DEG, CLAMP_DEG);
+    return requestAnimationFrame(loop);
+  }
+
+  // Flat modes: both share the left/right (x) and front/back (y) tilt.
+  smooth.x = lowPass(smooth.x, tilt.x, SMOOTHING.bullseye);
+  smooth.y = lowPass(smooth.y, tilt.y, SMOOTHING.bullseye);
+  const x = clamp(smooth.x - tare.x, -CLAMP_DEG, CLAMP_DEG);
+  const y = clamp(smooth.y - tare.y, -CLAMP_DEG, CLAMP_DEG);
+
+  if (mode === 'torpedo') {
+    drawTorpedo(torpedo1.ctx, torpedo1, x, theme); // SIDE — left/right tilt
+    drawTorpedo(torpedo2.ctx, torpedo2, y, theme); // FRONT — front/back tilt
+    setReadout(valX, x); // each gauge is an independent axis
+    setReadout(valY, y);
+  } else { // 'bullseye'
     drawBullseye(bullseye.ctx, bullseye, x, y, theme);
-    // In flat mode both readouts share the bullseye's combined flat state.
+    // The single 2-axis bubble is level only when both axes are — shared state.
     const flat = Math.abs(x) < FLAT_THRESHOLD_DEG && Math.abs(y) < FLAT_THRESHOLD_DEG;
     valX.innerHTML = formatAngle(x) + '<span class="unit">°</span>';
     valY.innerHTML = formatAngle(y) + '<span class="unit">°</span>';

@@ -17,7 +17,11 @@
 
     <div id="levelUI" class="hidden" style="display:contents;">
       <div class="info">
-        <div class="mode-label hidden" id="modeLabel">ON EDGE — DUAL AXIS</div>
+        <div class="switch" id="flatSwitch" role="group" aria-label="Flat display mode">
+          <button type="button" class="seg is-active" id="segBullseye" data-view="bullseye">BULLSEYE</button>
+          <button type="button" class="seg" id="segTorpedo" data-view="torpedo">TORPEDO</button>
+        </div>
+        <div class="mode-label hidden" id="modeBanner">ON EDGE — DUAL AXIS</div>
 
         <div class="readout">
           <div class="field" id="fieldX">
@@ -40,13 +44,13 @@
 
       <div class="torpedo-stack hidden" id="torpedoStack">
         <div class="torpedo-row">
-          <span class="torpedo-tag">LEVEL</span>
+          <span class="torpedo-tag" id="torpedoTag1">LEVEL</span>
           <div class="torpedo-wrap" id="torpedoWrap">
             <canvas id="torpedoCanvas"></canvas>
           </div>
         </div>
         <div class="torpedo-row">
-          <span class="torpedo-tag">LEAN</span>
+          <span class="torpedo-tag" id="torpedoTag2">LEAN</span>
           <div class="torpedo-wrap" id="torpedoWrap2">
             <canvas id="torpedoCanvas2"></canvas>
           </div>
