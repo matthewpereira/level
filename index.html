@@ -32,18 +32,21 @@
   body{
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
+    align-items: stretch;
+    justify-content: stretch;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    height: 100dvh;
   }
 
   main{
     width: 100%;
-    max-width: 440px;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 0;
+    flex: 1;
+    min-height: 0;
   }
 
   .mode-label{
@@ -59,7 +62,6 @@
   }
   .mode-label.hidden{ display: none; }
 
-  /* --- Readout --- */
   .readout{
     display: flex;
     border: 3px solid var(--line);
@@ -71,13 +73,14 @@
   }
   .readout .field + .field{ border-left: 3px solid var(--line); }
   .readout .value{
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 15vw;
+    font-family: 'Space Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(30px, 13vw, 68px);
     line-height: 0.9;
-    max-font-size: 64px;
-    font-weight: 400;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: var(--ink);
+    white-space: nowrap;
   }
   .readout .value.flat{ color: var(--accent); }
   .readout .unit{ font-size: 0.5em; }
@@ -89,11 +92,11 @@
     text-transform: uppercase;
   }
 
-  /* --- Bullseye vial --- */
   .vial-wrap{
     position: relative;
     width: 100%;
-    aspect-ratio: 1 / 1;
+    flex: 1;
+    min-height: 0;
     border: 3px solid var(--line);
     border-top: none;
   }
@@ -104,10 +107,11 @@
     display: block;
   }
 
-  /* --- Torpedo stack --- */
   .torpedo-stack{
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
   .torpedo-stack.hidden{ display: none; }
 
@@ -116,6 +120,8 @@
     align-items: stretch;
     border: 3px solid var(--line);
     border-top: none;
+    flex: 1;
+    min-height: 0;
   }
   .torpedo-tag{
     font-weight: 700;
@@ -134,7 +140,7 @@
   .torpedo-wrap{
     position: relative;
     flex: 1;
-    height: 110px;
+    min-height: 0;
   }
   .torpedo-wrap canvas{
     position: absolute; inset: 0;
@@ -142,7 +148,6 @@
     display: block;
   }
 
-  /* --- Controls --- */
   .controls{
     display: flex;
     border: 3px solid var(--line);
@@ -323,11 +328,25 @@
     tctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', ()=>setTimeout(resize, 100));
+
+  function requestFS(){
+    const el = document.documentElement;
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen ||
+               el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (fn && !document.fullscreenElement && !document.webkitFullscreenElement){
+      try { fn.call(el).catch(()=>{}); } catch(err){}
+    }
+  }
+  window.addEventListener('pointerdown', requestFS, { once: true });
+  document.addEventListener('fullscreenchange', ()=>setTimeout(resize, 100));
+  document.addEventListener('webkitfullscreenchange', ()=>setTimeout(resize, 100));
 
   let tareX = 0, tareY = 0;
   let tareLevel = 0, tareLean = 0;
   let rawX = 0, rawY = 0;
   let smoothX = 0, smoothY = 0;
+  let smoothLevel = 0, smoothLean = 0;
   let haveReading = false;
 
   function handleOrientation(e){
@@ -349,9 +368,9 @@
     const a = e.accelerationIncludingGravity;
     if (!a || a.x === null) return;
     haveMotion = true;
-    gx += (a.x - gx) * 0.18;
-    gy += (a.y - gy) * 0.18;
-    gz += (a.z - gz) * 0.18;
+    gx += (a.x - gx) * 0.09;
+    gy += (a.y - gy) * 0.09;
+    gz += (a.z - gz) * 0.09;
 
     const mag = Math.sqrt(gx*gx + gy*gy + gz*gz) || 1;
     const screenPlane = Math.max(Math.abs(gx), Math.abs(gy));
@@ -384,8 +403,11 @@
     }
 
     if (showTorpedo){
-      const level = clamp(torpedoLevelRaw - tareLevel, -45, 45);
-      const lean = clamp(torpedoLeanRaw - tareLean, -45, 45);
+      smoothLevel += (torpedoLevelRaw - smoothLevel) * 0.12;
+      smoothLean += (torpedoLeanRaw - smoothLean) * 0.12;
+
+      const level = clamp(smoothLevel - tareLevel, -45, 45);
+      const lean = clamp(smoothLean - tareLean, -45, 45);
       drawTorpedo(tctx, tSize, level);
       drawTorpedo(tctx2, tSize2, lean);
 
@@ -396,8 +418,8 @@
       valX.classList.toggle('flat', levelFlat);
       valY.classList.toggle('flat', leanFlat);
     } else {
-      smoothX += (rawX - smoothX) * 0.25;
-      smoothY += (rawY - smoothY) * 0.25;
+      smoothX += (rawX - smoothX) * 0.14;
+      smoothY += (rawY - smoothY) * 0.14;
 
       const x = clamp(smoothX - tareX, -45, 45);
       const y = clamp(smoothY - tareY, -45, 45);
@@ -415,8 +437,10 @@
   }
 
   function fmt(v){
-    const s = v.toFixed(1);
-    return (v > 0 ? '+' : '') + s;
+    const sign = v < 0 ? '\u2212' : '+';
+    const s = Math.abs(v).toFixed(1);
+    const [intPart, decPart] = s.split('.');
+    return sign + intPart.padStart(2, '0') + '.' + decPart;
   }
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
@@ -432,19 +456,16 @@
     ctx.strokeStyle = '#0a0a0a';
     ctx.lineWidth = 2;
 
-    // crosshair
     ctx.beginPath();
     ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy);
     ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R);
     ctx.stroke();
 
-    // outer ring (flat, hard)
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI*2);
     ctx.stroke();
 
-    // target square (center)
     ctx.lineWidth = 2;
     const tR = R*0.22;
     ctx.strokeRect(cx-tR, cy-tR, tR*2, tR*2);
@@ -506,10 +527,11 @@
   }
 
   tareBtn.addEventListener('click', ()=>{
+    requestFS();
     tareX = rawX;
     tareY = rawY;
-    tareLevel = torpedoLevelRaw;
-    tareLean = torpedoLeanRaw;
+    tareLevel = smoothLevel;
+    tareLean = smoothLean;
   });
   resetBtn.addEventListener('click', ()=>{
     tareX = 0; tareY = 0; tareLevel = 0; tareLean = 0;
@@ -539,6 +561,7 @@
   if (needsIOSPermission()){
     permGate.classList.remove('hidden');
     permBtn.addEventListener('click', ()=>{
+      requestFS();
       const requests = [];
       if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission){
         requests.push(DeviceOrientationEvent.requestPermission());
