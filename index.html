@@ -85,7 +85,6 @@
     min-height: 0;
   }
 
-  /* --- Readout --- */
   .readout{
     display: flex;
     gap: 28px;
@@ -109,7 +108,6 @@
     color: var(--ink-dim);
   }
 
-  /* --- Bullseye vial --- */
   .vial-wrap{
     position: relative;
     width: min(78vw, 320px);
@@ -143,7 +141,6 @@
     display: block;
   }
 
-  /* --- Tare button --- */
   .controls{
     display: flex;
     align-items: center;
@@ -232,6 +229,40 @@
     cursor: pointer;
   }
   .hidden{ display: none !important; }
+
+  .torpedo-wrap{
+    position: relative;
+    width: min(78vw, 320px);
+    height: 92px;
+    border-radius: 16px;
+  }
+  .torpedo-wrap .bezel{ border-radius: 16px; }
+  .torpedo-wrap .glass{ inset: 10px; border-radius: 10px; }
+
+  .mode-label{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    color: var(--amber);
+    margin-bottom: -14px;
+    opacity: 0.85;
+  }
+
+  .readout .field.hide-field{
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .stage{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: opacity .25s ease;
+  }
 </style>
 </head>
 <body>
@@ -243,28 +274,38 @@
 
   <main>
 
-    <!-- Permission gate (iOS) -->
     <div class="permission-gate hidden" id="permGate">
       <p>Your browser requires permission to read motion &amp; orientation sensors.</p>
       <button class="primary-btn" id="permBtn">ENABLE SENSORS</button>
     </div>
 
     <div id="levelUI" class="hidden" style="display:contents;">
-      <div class="readout">
-        <div class="field">
-          <div class="value" id="valX">0.0<span class="unit">°</span></div>
-          <div class="label">SIDE&nbsp;&nbsp;X</div>
-        </div>
-        <div class="field">
-          <div class="value" id="valY">0.0<span class="unit">°</span></div>
-          <div class="label">FRONT&nbsp;Y</div>
-        </div>
-      </div>
+      <div class="stage">
+        <div class="mode-label hidden" id="modeLabel">ON EDGE · SINGLE AXIS</div>
 
-      <div class="vial-wrap">
-        <div class="bezel"></div>
-        <div class="glass">
-          <canvas id="canvas"></canvas>
+        <div class="readout">
+          <div class="field" id="fieldX">
+            <div class="value" id="valX">0.0<span class="unit">°</span></div>
+            <div class="label" id="labelX">SIDE&nbsp;&nbsp;X</div>
+          </div>
+          <div class="field" id="fieldY">
+            <div class="value" id="valY">0.0<span class="unit">°</span></div>
+            <div class="label">FRONT&nbsp;Y</div>
+          </div>
+        </div>
+
+        <div class="vial-wrap" id="bullseyeWrap">
+          <div class="bezel"></div>
+          <div class="glass">
+            <canvas id="canvas"></canvas>
+          </div>
+        </div>
+
+        <div class="torpedo-wrap hidden" id="torpedoWrap">
+          <div class="bezel"></div>
+          <div class="glass">
+            <canvas id="torpedoCanvas"></canvas>
+          </div>
         </div>
       </div>
 
@@ -285,8 +326,16 @@
 (function(){
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
+  const torpedoCanvas = document.getElementById('torpedoCanvas');
+  const tctx = torpedoCanvas.getContext('2d');
   const valX = document.getElementById('valX');
   const valY = document.getElementById('valY');
+  const fieldX = document.getElementById('fieldX');
+  const fieldY = document.getElementById('fieldY');
+  const labelX = document.getElementById('labelX');
+  const modeLabel = document.getElementById('modeLabel');
+  const bullseyeWrap = document.getElementById('bullseyeWrap');
+  const torpedoWrap = document.getElementById('torpedoWrap');
   const statusDot = document.getElementById('statusDot');
   const footerMsg = document.getElementById('footerMsg');
   const tareBtn = document.getElementById('tareBtn');
@@ -297,6 +346,7 @@
 
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let size = 0;
+  let tSize = { w: 0, h: 0 };
 
   function resize(){
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -304,12 +354,18 @@
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const trect = torpedoCanvas.parentElement.getBoundingClientRect();
+    tSize.w = trect.width; tSize.h = trect.height;
+    torpedoCanvas.width = tSize.w * dpr;
+    torpedoCanvas.height = tSize.h * dpr;
+    tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   window.addEventListener('resize', resize);
 
-  // tare offsets
   let tareX = 0, tareY = 0;
-  let rawX = 0, rawY = 0; // beta (front/back), gamma (left/right)
+  let tareTorpedo = 0;
+  let rawX = 0, rawY = 0;
   let smoothX = 0, smoothY = 0;
   let haveReading = false;
 
@@ -321,23 +377,71 @@
     if (!statusDot.classList.contains('live')) statusDot.classList.add('live');
   }
 
+  let gx = 0, gy = 0, gz = -9.81;
+  let haveMotion = false;
+  let torpedoAngleRaw = 0;
+  let inTorpedoMode = false;
+  const ENTER_EDGE_RATIO = 0.82;
+  const EXIT_EDGE_RATIO = 0.68;
+
+  function handleMotion(e){
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x === null) return;
+    haveMotion = true;
+    gx += (a.x - gx) * 0.18;
+    gy += (a.y - gy) * 0.18;
+    gz += (a.z - gz) * 0.18;
+
+    const mag = Math.sqrt(gx*gx + gy*gy + gz*gz) || 1;
+    const screenPlane = Math.max(Math.abs(gx), Math.abs(gy));
+    const edgeRatio = screenPlane / mag;
+
+    if (!inTorpedoMode && edgeRatio > ENTER_EDGE_RATIO) inTorpedoMode = true;
+    else if (inTorpedoMode && edgeRatio < EXIT_EDGE_RATIO) inTorpedoMode = false;
+
+    const dominant = Math.abs(gx) >= Math.abs(gy) ? Math.abs(gx) : Math.abs(gy);
+    torpedoAngleRaw = Math.atan2(gz, dominant) * 180 / Math.PI;
+  }
+
+  let lastMode = null;
+
   function loop(){
-    smoothX += (rawX - smoothX) * 0.25;
-    smoothY += (rawY - smoothY) * 0.25;
+    const showTorpedo = haveMotion && inTorpedoMode;
 
-    const x = clamp(smoothX - tareX, -45, 45);
-    const y = clamp(smoothY - tareY, -45, 45);
+    if (showTorpedo !== lastMode){
+      lastMode = showTorpedo;
+      bullseyeWrap.classList.toggle('hidden', showTorpedo);
+      torpedoWrap.classList.toggle('hidden', !showTorpedo);
+      modeLabel.classList.toggle('hidden', !showTorpedo);
+      fieldY.classList.toggle('hide-field', showTorpedo);
+      labelX.innerHTML = showTorpedo ? 'PLUMB' : 'SIDE&nbsp;&nbsp;X';
+    }
 
-    draw(x, y);
+    if (showTorpedo){
+      const t = clamp(torpedoAngleRaw - tareTorpedo, -45, 45);
+      drawTorpedo(t);
+      const flat = Math.abs(t) < 0.6;
+      valX.innerHTML = fmt(t) + '<span class="unit">°</span>';
+      valX.classList.toggle('flat', flat);
+      footerMsg.textContent = flat ? 'Plumb.' : 'Rotate the phone until the bubble centers.';
+    } else {
+      smoothX += (rawX - smoothX) * 0.25;
+      smoothY += (rawY - smoothY) * 0.25;
 
-    const flat = Math.abs(x) < 0.6 && Math.abs(y) < 0.6;
-    valX.innerHTML = fmt(x) + '<span class="unit">°</span>';
-    valY.innerHTML = fmt(y) + '<span class="unit">°</span>';
-    valX.classList.toggle('flat', flat);
-    valY.classList.toggle('flat', flat);
+      const x = clamp(smoothX - tareX, -45, 45);
+      const y = clamp(smoothY - tareY, -45, 45);
 
-    if (haveReading){
-      footerMsg.textContent = flat ? 'Level.' : 'Tilt the phone until the bubble centers.';
+      draw(x, y);
+
+      const flat = Math.abs(x) < 0.6 && Math.abs(y) < 0.6;
+      valX.innerHTML = fmt(x) + '<span class="unit">°</span>';
+      valY.innerHTML = fmt(y) + '<span class="unit">°</span>';
+      valX.classList.toggle('flat', flat);
+      valY.classList.toggle('flat', flat);
+
+      if (haveReading){
+        footerMsg.textContent = flat ? 'Level.' : 'Tilt the phone until the bubble centers.';
+      }
     }
 
     requestAnimationFrame(loop);
@@ -405,18 +509,78 @@
     ctx.fill();
   }
 
+  function drawTorpedo(deg){
+    if (!tSize.w) resize();
+    const w = tSize.w, h = tSize.h;
+    tctx.clearRect(0,0,w,h);
+
+    const midY = h/2;
+    const travel = (w/2) - 34;
+
+    tctx.strokeStyle = 'rgba(233,231,224,0.10)';
+    tctx.lineWidth = 1;
+    tctx.beginPath();
+    tctx.moveTo(20, midY); tctx.lineTo(w-20, midY);
+    tctx.stroke();
+
+    tctx.strokeStyle = 'rgba(233,231,224,0.16)';
+    for (let i=-4;i<=4;i++){
+      const tx = w/2 + (i/4)*travel;
+      const th = i===0 ? 16 : 8;
+      tctx.beginPath();
+      tctx.moveTo(tx, midY-th); tctx.lineTo(tx, midY+th);
+      tctx.stroke();
+    }
+    tctx.strokeStyle = 'rgba(255,180,84,0.55)';
+    tctx.lineWidth = 1.5;
+    tctx.beginPath();
+    tctx.moveTo(w/2-3, midY-20); tctx.lineTo(w/2-3, midY+20);
+    tctx.moveTo(w/2+3, midY-20); tctx.lineTo(w/2+3, midY+20);
+    tctx.stroke();
+
+    const maxDeg = 25;
+    const bx = w/2 + clamp(deg / maxDeg, -1, 1) * travel;
+
+    const flat = Math.abs(deg) < 0.6;
+    const bubbleColor = flat ? '#6ef0a8' : '#ffb454';
+
+    tctx.beginPath();
+    tctx.ellipse(bx, midY+3, 22, 18, 0, 0, Math.PI*2);
+    tctx.fillStyle = 'rgba(0,0,0,0.35)';
+    tctx.fill();
+
+    const grad = tctx.createRadialGradient(bx-5, midY-5, 2, bx, midY, 22);
+    grad.addColorStop(0, flat ? 'rgba(180,255,220,0.95)' : 'rgba(255,220,170,0.95)');
+    grad.addColorStop(0.55, bubbleColor);
+    grad.addColorStop(1, flat ? '#2f5c47' : '#7a5327');
+    tctx.beginPath();
+    tctx.ellipse(bx, midY, 20, 18, 0, 0, Math.PI*2);
+    tctx.fillStyle = grad;
+    tctx.shadowColor = bubbleColor;
+    tctx.shadowBlur = flat ? 20 : 8;
+    tctx.fill();
+    tctx.shadowBlur = 0;
+
+    tctx.beginPath();
+    tctx.ellipse(bx-6, midY-6, 5, 3, -0.6, 0, Math.PI*2);
+    tctx.fillStyle = 'rgba(255,255,255,0.55)';
+    tctx.fill();
+  }
+
   tareBtn.addEventListener('click', ()=>{
     tareX = rawX;
     tareY = rawY;
+    tareTorpedo = torpedoAngleRaw;
     tareBtn.classList.add('active-flash');
     setTimeout(()=>tareBtn.classList.remove('active-flash'), 400);
   });
   resetBtn.addEventListener('click', ()=>{
-    tareX = 0; tareY = 0;
+    tareX = 0; tareY = 0; tareTorpedo = 0;
   });
 
   function startSensors(){
     window.addEventListener('deviceorientation', handleOrientation, true);
+    window.addEventListener('devicemotion', handleMotion, true);
     levelUI.classList.remove('hidden');
     permGate.classList.add('hidden');
     resize();
@@ -429,15 +593,24 @@
   }
 
   function needsIOSPermission(){
-    return typeof DeviceOrientationEvent !== 'undefined' &&
-           typeof DeviceOrientationEvent.requestPermission === 'function';
+    return (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') ||
+           (typeof DeviceMotionEvent !== 'undefined' &&
+            typeof DeviceMotionEvent.requestPermission === 'function');
   }
 
   if (needsIOSPermission()){
     permGate.classList.remove('hidden');
     permBtn.addEventListener('click', ()=>{
-      DeviceOrientationEvent.requestPermission().then(state=>{
-        if (state === 'granted'){
+      const requests = [];
+      if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission){
+        requests.push(DeviceOrientationEvent.requestPermission());
+      }
+      if (typeof DeviceMotionEvent !== 'undefined' && DeviceMotionEvent.requestPermission){
+        requests.push(DeviceMotionEvent.requestPermission());
+      }
+      Promise.all(requests).then(states=>{
+        if (states.every(s => s === 'granted')){
           startSensors();
         } else {
           footerMsg.textContent = 'Permission denied. Enable motion access in Settings to use the level.';
