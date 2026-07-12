@@ -36,10 +36,9 @@ function makeSurface(id) {
 // the design agent only needs to edit them in one place (css/styles.css).
 const css = getComputedStyle(document.documentElement);
 const theme = {
-  ink: css.getPropertyValue('--ink').trim() || '#eaeef2',
-  good: css.getPropertyValue('--good').trim() || '#17e08c',
-  bad: css.getPropertyValue('--bad').trim() || '#ff3b30',
-  bg: css.getPropertyValue('--bg').trim() || '#0a0c0f',
+  ink: css.getPropertyValue('--ink').trim() || '#111111',
+  bg: css.getPropertyValue('--bg').trim() || '#f4f1e8',
+  accent: css.getPropertyValue('--accent').trim() || '#f1571e',
 };
 
 // --- Canvas sizing ---

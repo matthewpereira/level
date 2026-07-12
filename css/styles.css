@@ -1,25 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap');
 
 /* ============================================================
-   LEVEL — dark precision-instrument / HUD theme.
-   Recognizably brutalist: monospace, hard edges, heavy frames,
-   high contrast — pushed toward a black-panel measuring tool.
-   Canvas colors are read from --ink / --good / --bad by
-   js/renderers.js, so keep those three variables in sync.
+   LEVEL — Swiss / International-style brutalism.
+   Paper ground, black ink, one burnt red-orange accent. Bold
+   grotesque type, hard edges, heavy rules, flat (no gradients,
+   shadows or glows). "Level" is signalled by the accent, used
+   sparingly and decisively.
+   Canvas colours are read from --ink / --bg / --accent by
+   js/renderers.js — keep those in sync.
    ============================================================ */
 
 :root{
-  --bg:    #0a0c0f;   /* deep instrument black */
-  --panel: #0f1317;   /* panel face */
-  --panel2:#0c0f13;   /* recessed face (buttons/fields) */
-  --ink:   #eaeef2;   /* primary light: text + canvas rules */
-  --dim:   #6a7783;   /* secondary labels */
-  --line:  #1c232a;   /* hairline internal grid */
-  --edge:  #333d47;   /* panel border */
-  --accent:#ff5a36;   /* warning accent line */
-  --bad:   #ff3b30;   /* out of level (alarm red) */
-  --good:  #17e08c;   /* level (signal green) */
-  --gap: 6px;
+  --bg:     #f4f1e8;   /* warm paper */
+  --ink:    #111111;   /* near-black */
+  --accent: #f1571e;   /* burnt red-orange — the single accent */
+  --line:   #111111;   /* rules and frames = ink */
+  --gap: 4px;          /* paper seam between panels */
+  --frame: 3px;        /* heavy border weight */
+  --sans: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -27,8 +25,9 @@
 html, body{
   height: 100%;
   margin: 0;
+  background: var(--bg);
   color: var(--ink);
-  font-family: 'Space Mono', monospace;
+  font-family: var(--sans);
   overflow: hidden;
   touch-action: none;
   -webkit-user-select: none;
@@ -36,17 +35,10 @@ html, body{
 }
 
 body{
-  /* Faint HUD grid shows through panel seams and safe-area padding. */
-  background-color: var(--bg);
-  background-image:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 24px 24px, 24px 24px;
-  background-position: center;
   padding-top:    env(safe-area-inset-top, 0px);
-  padding-right:  max(env(safe-area-inset-right, 0px), 0px);
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
-  padding-left:   max(env(safe-area-inset-left, 0px), 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
   height: 100vh;
   height: 100dvh;
 }
@@ -61,7 +53,7 @@ main{
   min-height: 0;
 }
 
-/* ---- Shared panel look ---- */
+/* ---- Shared panel look: heavy ink frame on paper, hard corners ---- */
 .mode-label,
 .readout,
 .vial-wrap,
@@ -69,33 +61,29 @@ main{
 .controls,
 .err-msg,
 .permission-gate{
-  background: var(--panel);
-  border: 2px solid var(--edge);
-  border-radius: 2px;
+  background: var(--bg);
+  border: var(--frame) solid var(--line);
+  border-radius: 0;
 }
 
 /* ---- Mode label (on-edge banner) ---- */
 .mode-label{
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.22em;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.18em;
   text-align: center;
   text-transform: uppercase;
-  color: var(--good);
-  padding: 9px 8px;
+  color: var(--ink);
+  padding: 9px 8px 9px 26px;
   position: relative;
 }
 .mode-label::before{
   content: "";
-  position: absolute; left: 8px; top: 50%;
-  width: 6px; height: 6px; margin-top: -3px;
-  background: var(--good);
-  box-shadow: 0 0 8px var(--good);
-  animation: pulse 1.4s ease-in-out infinite;
+  position: absolute; left: 10px; top: 50%;
+  width: 9px; height: 9px; margin-top: -4px;
+  background: var(--accent);
 }
 .mode-label.hidden{ display: none; }
-
-@keyframes pulse{ 50%{ opacity: 0.25; } }
 
 /* ---- Readout ---- */
 .readout{
@@ -106,35 +94,28 @@ main{
 }
 .readout .field{
   text-align: center;
-  padding: 16px 8px 12px;
-  position: relative;
+  padding: 14px 8px 12px;
   min-width: 0;
   overflow: hidden;
 }
-.readout .field + .field{ border-left: 2px solid var(--edge); }
+.readout .field + .field{ border-left: var(--frame) solid var(--line); }
 .readout .value{
   font-variant-numeric: tabular-nums;
-  font-size: clamp(26px, 10.5vw, 58px);
-  line-height: 0.9;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--bad);
+  font-size: clamp(28px, 11vw, 60px);
+  line-height: 0.82;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
   white-space: nowrap;
-  transition: color .18s ease, text-shadow .18s ease;
-  text-shadow: 0 0 14px color-mix(in srgb, var(--bad) 45%, transparent);
 }
-.readout .value.flat{
-  color: var(--good);
-  text-shadow: 0 0 16px color-mix(in srgb, var(--good) 60%, transparent);
-}
-.readout .unit{ font-size: 0.5em; color: var(--dim); }
+.readout .value.flat{ color: var(--accent); }   /* level = the accent event */
+.readout .unit{ font-size: 0.42em; font-weight: 700; vertical-align: 0.5em; }
 .readout .label{
-  margin-top: 9px;
+  margin-top: 10px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--dim);
 }
 
 /* ---- Bullseye vial ---- */
@@ -144,7 +125,6 @@ main{
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  animation: panelIn .2s ease-out;
 }
 .vial-wrap canvas{
   position: absolute; inset: 0;
@@ -159,7 +139,6 @@ main{
   gap: var(--gap);
   flex: 1;
   min-height: 0;
-  animation: panelIn .2s ease-out;
 }
 .torpedo-stack.hidden{ display: none; }
 
@@ -171,18 +150,18 @@ main{
   overflow: hidden;
 }
 .torpedo-tag{
-  font-weight: 700;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: var(--dim);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--bg);
+  background: var(--ink);
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 7px;
-  border-right: 2px solid var(--edge);
+  padding: 10px 8px;
   flex-shrink: 0;
 }
 .torpedo-wrap{
@@ -196,8 +175,6 @@ main{
   display: block;
 }
 
-@keyframes panelIn{ from{ opacity: 0; } to{ opacity: 1; } }
-
 /* ---- Controls ---- */
 .controls{
   display: flex;
@@ -206,32 +183,32 @@ main{
 }
 .tare-btn,
 .reset-btn{
-  font-family: 'Space Mono', monospace;
-  font-weight: 700;
+  font-family: var(--sans);
+  font-weight: 800;
   text-transform: uppercase;
   border: none;
   cursor: pointer;
-  min-height: 60px;
-  transition: background .12s ease, color .12s ease, transform .05s ease;
+  min-height: 62px;
+  transition: background .1s ease, color .1s ease;
 }
 .tare-btn{
   flex: 1;
-  font-size: 15px;
-  letter-spacing: 0.24em;
+  font-size: 16px;
+  letter-spacing: 0.26em;
   color: var(--bg);
   background: var(--ink);
 }
-.tare-btn:active{ transform: scale(0.985); background: var(--good); }
+.tare-btn:active{ background: var(--accent); }
 .reset-btn{
   flex: 0 0 auto;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  color: var(--dim);
-  background: var(--panel2);
-  border-left: 2px solid var(--edge);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  background: var(--bg);
+  border-left: var(--frame) solid var(--line);
   padding: 0 22px;
 }
-.reset-btn:active{ background: var(--bad); color: var(--bg); }
+.reset-btn:active{ background: var(--ink); color: var(--bg); }
 
 /* ---- Permission gate ---- */
 .permission-gate{
@@ -246,51 +223,50 @@ main{
 .permission-gate p{
   margin: 0;
   padding: 22px 18px;
-  font-size: 13px;
-  line-height: 1.6;
-  letter-spacing: 0.06em;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
   color: var(--ink);
-  border-bottom: 2px solid var(--edge);
-}
-.permission-gate p::before{
-  content: "▸ ";
-  color: var(--accent);
+  border-bottom: var(--frame) solid var(--line);
+  text-transform: uppercase;
 }
 .primary-btn{
-  font-family: 'Space Mono', monospace;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  font-size: 15px;
   color: var(--bg);
   background: var(--ink);
   border: none;
   padding: 22px;
   cursor: pointer;
   text-transform: uppercase;
-  min-height: 60px;
-  transition: background .12s ease;
+  min-height: 62px;
+  transition: background .1s ease;
 }
-.primary-btn:active{ background: var(--good); }
+.primary-btn:active{ background: var(--accent); }
 
 /* ---- Footer message ---- */
 .err-msg{
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   text-align: center;
-  color: var(--bad);
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
   padding: 11px 8px;
-  border-color: var(--bad);
 }
-.err-msg::before{ content: "⚠ "; }
 .err-msg:empty{ display: none; }
 
 .hidden{ display: none !important; }
 
 /* ============================================================
-   LANDSCAPE — side-by-side: instrument column on the left
-   (readout + controls), vial fills the rest to the right.
-   Keeps the vial large instead of a short wide strip.
+   LANDSCAPE — instrument column on the left (banner + readout +
+   controls), vial fills the rest to the right. Keeps the vial
+   large instead of a short wide strip.
    ============================================================ */
 @media (orientation: landscape){
   main{
@@ -314,8 +290,8 @@ main{
   /* Stack the two fields vertically in the narrow left column. */
   .readout{ grid-template-columns: minmax(0, 1fr); }
   .readout .field{ padding: 14px 8px; }
-  .readout .field + .field{ border-left: none; border-top: 2px solid var(--edge); }
-  .readout .value{ font-size: clamp(28px, 9vh, 60px); }
+  .readout .field + .field{ border-left: none; border-top: var(--frame) solid var(--line); }
+  .readout .value{ font-size: clamp(30px, 9vh, 64px); }
 
   /* Permission gate ignores the grid tracks and simply centers. */
   .permission-gate{ grid-column: 1 / -1; grid-row: 1 / -1; }
