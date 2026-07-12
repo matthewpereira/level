@@ -11,6 +11,8 @@
     --bg: #ffffff;
     --ink: #0a0a0a;
     --accent: #ff2400;
+    --bad: #ff2400;
+    --good: #00a63e;
     --ok: #0a0a0a;
     --line: #0a0a0a;
   }
@@ -62,6 +64,7 @@
   }
   .mode-label.hidden{ display: none; }
 
+  /* --- Readout --- */
   .readout{
     display: flex;
     border: 3px solid var(--line);
@@ -79,10 +82,10 @@
     line-height: 0.9;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: var(--ink);
+    color: var(--bad);
     white-space: nowrap;
   }
-  .readout .value.flat{ color: var(--accent); }
+  .readout .value.flat{ color: var(--good); }
   .readout .unit{ font-size: 0.5em; }
   .readout .label{
     margin-top: 10px;
@@ -92,6 +95,7 @@
     text-transform: uppercase;
   }
 
+  /* --- Bullseye vial --- */
   .vial-wrap{
     position: relative;
     width: 100%;
@@ -107,6 +111,7 @@
     display: block;
   }
 
+  /* --- Torpedo stack --- */
   .torpedo-stack{
     display: flex;
     flex-direction: column;
@@ -148,6 +153,7 @@
     display: block;
   }
 
+  /* --- Controls --- */
   .controls{
     display: flex;
     border: 3px solid var(--line);
@@ -330,6 +336,10 @@
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', ()=>setTimeout(resize, 100));
 
+  // --- Fullscreen (hides browser chrome / URL bar) ---
+  // requestFullscreen() only works from within a user gesture, so this
+  // fires on the first tap anywhere and then persists across rotations.
+  // Not supported on iOS Safari outside of "Add to Home Screen" apps.
   function requestFS(){
     const el = document.documentElement;
     const fn = el.requestFullscreen || el.webkitRequestFullscreen ||
@@ -368,6 +378,7 @@
     const a = e.accelerationIncludingGravity;
     if (!a || a.x === null) return;
     haveMotion = true;
+    // slow low-pass on the raw vector — cuts high-frequency sensor noise
     gx += (a.x - gx) * 0.09;
     gy += (a.y - gy) * 0.09;
     gz += (a.z - gz) * 0.09;
@@ -403,6 +414,8 @@
     }
 
     if (showTorpedo){
+      // second-stage smoothing on the derived angles themselves — atan2
+      // can amplify small vector jitters, so this settles the readout.
       smoothLevel += (torpedoLevelRaw - smoothLevel) * 0.12;
       smoothLean += (torpedoLeanRaw - smoothLean) * 0.12;
 
@@ -437,7 +450,7 @@
   }
 
   function fmt(v){
-    const sign = v < 0 ? '\u2212' : '+';
+    const sign = v < 0 ? '\u2212' : '+'; // true minus sign, same width as plus
     const s = Math.abs(v).toFixed(1);
     const [intPart, decPart] = s.split('.');
     return sign + intPart.padStart(2, '0') + '.' + decPart;
@@ -456,16 +469,19 @@
     ctx.strokeStyle = '#0a0a0a';
     ctx.lineWidth = 2;
 
+    // crosshair
     ctx.beginPath();
     ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy);
     ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R);
     ctx.stroke();
 
+    // outer ring (flat, hard)
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI*2);
     ctx.stroke();
 
+    // target square (center)
     ctx.lineWidth = 2;
     const tR = R*0.22;
     ctx.strokeRect(cx-tR, cy-tR, tR*2, tR*2);
@@ -475,7 +491,7 @@
     const py = clamp(yDeg / maxDeg, -1, 1) * (R*0.7);
 
     const flat = Math.abs(xDeg) < 0.6 && Math.abs(yDeg) < 0.6;
-    const bubbleColor = flat ? '#0a0a0a' : '#ff2400';
+    const bubbleColor = flat ? '#00a63e' : '#ff2400';
     const bR = 26;
 
     ctx.fillStyle = bubbleColor;
@@ -514,7 +530,7 @@
     const bx = w/2 + clamp(deg / maxDeg, -1, 1) * travel;
 
     const flat = Math.abs(deg) < 0.6;
-    const bubbleColor = flat ? '#0a0a0a' : '#ff2400';
+    const bubbleColor = flat ? '#00a63e' : '#ff2400';
     const bR = 17;
 
     c.fillStyle = bubbleColor;
