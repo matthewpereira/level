@@ -1,0 +1,322 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap');
+
+/* ============================================================
+   LEVEL — dark precision-instrument / HUD theme.
+   Recognizably brutalist: monospace, hard edges, heavy frames,
+   high contrast — pushed toward a black-panel measuring tool.
+   Canvas colors are read from --ink / --good / --bad by
+   js/renderers.js, so keep those three variables in sync.
+   ============================================================ */
+
+:root{
+  --bg:    #0a0c0f;   /* deep instrument black */
+  --panel: #0f1317;   /* panel face */
+  --panel2:#0c0f13;   /* recessed face (buttons/fields) */
+  --ink:   #eaeef2;   /* primary light: text + canvas rules */
+  --dim:   #6a7783;   /* secondary labels */
+  --line:  #1c232a;   /* hairline internal grid */
+  --edge:  #333d47;   /* panel border */
+  --accent:#ff5a36;   /* warning accent line */
+  --bad:   #ff3b30;   /* out of level (alarm red) */
+  --good:  #17e08c;   /* level (signal green) */
+  --gap: 6px;
+}
+
+*{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body{
+  height: 100%;
+  margin: 0;
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body{
+  /* Faint HUD grid shows through panel seams and safe-area padding. */
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px;
+  background-position: center;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-right:  max(env(safe-area-inset-right, 0px), 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+  padding-left:   max(env(safe-area-inset-left, 0px), 0px);
+  height: 100vh;
+  height: 100dvh;
+}
+
+main{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+  min-height: 0;
+}
+
+/* ---- Shared panel look ---- */
+.mode-label,
+.readout,
+.vial-wrap,
+.torpedo-row,
+.controls,
+.err-msg,
+.permission-gate{
+  background: var(--panel);
+  border: 2px solid var(--edge);
+  border-radius: 2px;
+}
+
+/* ---- Mode label (on-edge banner) ---- */
+.mode-label{
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--good);
+  padding: 9px 8px;
+  position: relative;
+}
+.mode-label::before{
+  content: "";
+  position: absolute; left: 8px; top: 50%;
+  width: 6px; height: 6px; margin-top: -3px;
+  background: var(--good);
+  box-shadow: 0 0 8px var(--good);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.mode-label.hidden{ display: none; }
+
+@keyframes pulse{ 50%{ opacity: 0.25; } }
+
+/* ---- Readout ---- */
+.readout{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 0;
+  overflow: hidden;
+}
+.readout .field{
+  text-align: center;
+  padding: 16px 8px 12px;
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+.readout .field + .field{ border-left: 2px solid var(--edge); }
+.readout .value{
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(26px, 10.5vw, 58px);
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--bad);
+  white-space: nowrap;
+  transition: color .18s ease, text-shadow .18s ease;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--bad) 45%, transparent);
+}
+.readout .value.flat{
+  color: var(--good);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--good) 60%, transparent);
+}
+.readout .unit{ font-size: 0.5em; color: var(--dim); }
+.readout .label{
+  margin-top: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* ---- Bullseye vial ---- */
+.vial-wrap{
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  animation: panelIn .2s ease-out;
+}
+.vial-wrap canvas{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+
+/* ---- Torpedo stack ---- */
+.torpedo-stack{
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  flex: 1;
+  min-height: 0;
+  animation: panelIn .2s ease-out;
+}
+.torpedo-stack.hidden{ display: none; }
+
+.torpedo-row{
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.torpedo-tag{
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 7px;
+  border-right: 2px solid var(--edge);
+  flex-shrink: 0;
+}
+.torpedo-wrap{
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.torpedo-wrap canvas{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+
+@keyframes panelIn{ from{ opacity: 0; } to{ opacity: 1; } }
+
+/* ---- Controls ---- */
+.controls{
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+}
+.tare-btn,
+.reset-btn{
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  min-height: 60px;
+  transition: background .12s ease, color .12s ease, transform .05s ease;
+}
+.tare-btn{
+  flex: 1;
+  font-size: 15px;
+  letter-spacing: 0.24em;
+  color: var(--bg);
+  background: var(--ink);
+}
+.tare-btn:active{ transform: scale(0.985); background: var(--good); }
+.reset-btn{
+  flex: 0 0 auto;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  background: var(--panel2);
+  border-left: 2px solid var(--edge);
+  padding: 0 22px;
+}
+.reset-btn:active{ background: var(--bad); color: var(--bg); }
+
+/* ---- Permission gate ---- */
+.permission-gate{
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  align-self: center;
+  justify-self: center;
+  width: min(92%, 420px);
+  margin: auto;
+}
+.permission-gate p{
+  margin: 0;
+  padding: 22px 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  border-bottom: 2px solid var(--edge);
+}
+.permission-gate p::before{
+  content: "▸ ";
+  color: var(--accent);
+}
+.primary-btn{
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  font-size: 14px;
+  color: var(--bg);
+  background: var(--ink);
+  border: none;
+  padding: 22px;
+  cursor: pointer;
+  text-transform: uppercase;
+  min-height: 60px;
+  transition: background .12s ease;
+}
+.primary-btn:active{ background: var(--good); }
+
+/* ---- Footer message ---- */
+.err-msg{
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: var(--bad);
+  padding: 11px 8px;
+  border-color: var(--bad);
+}
+.err-msg::before{ content: "⚠ "; }
+.err-msg:empty{ display: none; }
+
+.hidden{ display: none !important; }
+
+/* ============================================================
+   LANDSCAPE — side-by-side: instrument column on the left
+   (readout + controls), vial fills the rest to the right.
+   Keeps the vial large instead of a short wide strip.
+   ============================================================ */
+@media (orientation: landscape){
+  main{
+    display: grid;
+    grid-template-columns: minmax(180px, 34%) 1fr;
+    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-areas:
+      "mode vial"
+      "read vial"
+      ".    vial"
+      "ctrl vial"
+      "foot vial";
+  }
+  .mode-label{ grid-area: mode; }
+  .readout{ grid-area: read; }
+  .vial-wrap,
+  .torpedo-stack{ grid-area: vial; }
+  .controls{ grid-area: ctrl; }
+  .err-msg{ grid-area: foot; }
+
+  /* Stack the two fields vertically in the narrow left column. */
+  .readout{ grid-template-columns: minmax(0, 1fr); }
+  .readout .field{ padding: 14px 8px; }
+  .readout .field + .field{ border-left: none; border-top: 2px solid var(--edge); }
+  .readout .value{ font-size: clamp(28px, 9vh, 60px); }
+
+  /* Permission gate ignores the grid tracks and simply centers. */
+  .permission-gate{ grid-column: 1 / -1; grid-row: 1 / -1; }
+}
