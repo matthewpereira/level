@@ -36,7 +36,11 @@
     flex-direction: column;
     align-items: stretch;
     justify-content: stretch;
-    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: max(env(safe-area-inset-right, 0px), 4px);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 18px);
+    padding-left: max(env(safe-area-inset-left, 0px), 4px);
+    height: 100vh;
     height: 100dvh;
   }
 
