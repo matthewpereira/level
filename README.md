@@ -16,7 +16,7 @@ A phone spirit level for your phone.
 ## Notes
 
 - Works in portrait and landscape; the axes are corrected for screen rotation.
-- iOS should ask for motion-sensor permission on first use - I don't have an iPhone to test it with ¯\\_(ツ)_/¯.
+- iOS should ask for motion-sensor permission on first use - I don't have an iPhone to test it with ¯\\\_(ツ)\_/¯.
 - Best full-screen - the first tap requests fullscreen where the browser allows it.
 
 ## Development
