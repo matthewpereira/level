@@ -2,7 +2,7 @@
 
 A phone spirit level for your phone.
 
-**Live:** https://matthewpereira.github.io/level
+**Live:** https://matthewpereira.github.io/level (this isn't going to do anything if you open it on your laptop, use a phone)
 
 ## Modes
 
