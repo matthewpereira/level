@@ -6,29 +6,28 @@ A phone spirit level for your phone.
 
 ## Modes
 
-- **Flat** — lay the phone on a surface. Toggle between:
-  - **Bullseye** — a 2-axis bubble vial.
-  - **Torpedo** — two linear gauges: `SIDE` (left/right tilt) and `FRONT` (front/back tilt).
-- **On edge** — stand the phone up and it switches automatically to `LEVEL` / `LEAN` gauges.
+- **Flat**: lay the phone on a surface. Toggle between:
+  - **Bullseye**: a 2-axis bubble vial.
+  - **Torpedo**: two linear gauges: `SIDE` (left/right tilt) and `FRONT` (front/back tilt).
+- **On edge**: stand the phone up and it switches automatically to `LEVEL` / `LEAN` gauges.
 
 **TARE** zeroes the current reading against the surface you're on; **CLEAR** removes that offset.
 
 ## Notes
 
 - Works in portrait and landscape; the axes are corrected for screen rotation.
-- iOS should ask for motion-sensor permission on first use - I don't have an iPhone to test it with ¯\\\_(ツ)\_/¯.
+- iOS should ask for motion-sensor permission on first use - I don't have an iPhone to test it with so YMMV ¯\\\_(ツ)\_/¯.
 - Best full-screen - the first tap requests fullscreen where the browser allows it.
 
 ## Development
 
-No build step, no dependencies - if you want to fork and serve it yourself just use something like:
+No build step, no dependencies,if you want to fork and serve it yourself just use something like:
 
 ```sh
 python3 -m http.server 8000   # then visit http://localhost:8000
 ```
 
-Sensor data only comes from a real device, so use your phone (or browser
-device emulation) to see it working.
+Sensor data only comes from a real device, so use your phone to see it working.
 
 ```
 index.html        markup / app shell
@@ -48,4 +47,4 @@ Run the tests:
 node test/angles.test.mjs
 ```
 
-Deployed to GitHub Pages from `main` via `.github/workflows/static.yml`.
+Automatically deploys to GitHub Pages from `main` via `.github/workflows/static.yml`.
