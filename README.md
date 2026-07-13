@@ -21,7 +21,7 @@ A phone spirit level for your phone.
 
 ## Development
 
-No build step, no dependencies - if you want to fork and serve it yourself just use something like a:
+No build step, no dependencies - if you want to fork and serve it yourself just use something like:
 
 ```sh
 python3 -m http.server 8000   # then visit http://localhost:8000
