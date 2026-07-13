@@ -1,7 +1,6 @@
-# LEVEL
+# level
 
-A phone spirit level. Open it on your phone and it uses the device's motion
-sensors to show how level a surface is, styled as a Swiss-brutalist instrument.
+A phone spirit level for your phone.
 
 **Live:** https://matthewpereira.github.io/level
 
@@ -22,8 +21,7 @@ sensors to show how level a surface is, styled as a Swiss-brutalist instrument.
 
 ## Development
 
-No build step, no dependencies — plain HTML, CSS, and ES modules. Serve the
-folder and open it:
+No build step, no dependencies — if you want to fork and serve it yourself just use:
 
 ```sh
 python3 -m http.server 8000   # then visit http://localhost:8000
